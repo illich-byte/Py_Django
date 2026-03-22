@@ -1,15 +1,29 @@
 import os
+import uuid
+import json
 from django.shortcuts import redirect, render
-from .models import Product, ProductImage
 from django.views.decorators.csrf import csrf_exempt
-from .forms import ProductForm
+from django.http import JsonResponse
+from django.core.files.base import ContentFile
 from PIL import Image
 from io import BytesIO
-from django.core.files.base import ContentFile
-from django.http import JsonResponse
-import uuid
 
-# Create your views here.
+from .models import Product, ProductImage, Category 
+from .forms import ProductForm, CategoryForm
+
+
+def add_category(request):
+    if request.method == "POST":
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('products:show_products') 
+    else:
+        form = CategoryForm()
+    
+    return render(request, "add_category.html", {"form": form})
+
+
 def show_products(request):
     products = Product.objects.prefetch_related("images").all()
     return render(request, 'products.html', {'products': products})
@@ -27,7 +41,7 @@ def add_product(request):
                 img.priority = idx
                 img.save()
 
-            return redirect("products:show_products")  # назва URL на список товарів
+            return redirect("products:show_products")
     else:
         form = ProductForm()
 
@@ -55,7 +69,6 @@ def upload_temp_image(request):
 @csrf_exempt
 def delete_temp_image(request):
     if request.method == "DELETE":
-        import json
         data = json.loads(request.body)
         file_id = data.get("file_id")
         if file_id:
