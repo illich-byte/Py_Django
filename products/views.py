@@ -1,7 +1,7 @@
 import os
 import uuid
 import json
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404 # Додано get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.files.base import ContentFile
@@ -14,7 +14,7 @@ from .forms import ProductForm, CategoryForm
 
 def add_category(request):
     if request.method == "POST":
-        form = CategoryForm(request.POST)
+        form = CategoryForm(request.POST, request.FILES) # Додано request.FILES для фото
         if form.is_valid():
             form.save()
             return redirect('products:show_products') 
@@ -27,6 +27,22 @@ def add_category(request):
 def show_products(request):
     products = Product.objects.prefetch_related("images").all()
     return render(request, 'products.html', {'products': products})
+
+# --- РЕДАГУВАННЯ ПРОДУКТУ (НОВЕ) ---
+def edit_product(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    
+    if request.method == "POST":
+        form = ProductForm(request.POST, instance=product)
+        if form.is_valid():
+            form.save()
+            # Якщо у тебе FilePond, логіка з картинками тут може бути складнішою, 
+            # але для базового ДЗ цього достатньо.
+            return redirect("products:show_products")
+    else:
+        form = ProductForm(instance=product)
+        
+    return render(request, "add_product.html", {"form": form, "product": product, "edit_mode": True})
 
 def add_product(request):
     if request.method == "POST":
@@ -93,6 +109,12 @@ def delete_product(_, product_id):
                 img.image.delete(save=False)
             img.delete()
 
+        product.delete()
+
+    except Product.DoesNotExist:
+        pass
+
+    return redirect('products:show_products')
         product.delete()
 
     except Product.DoesNotExist:
