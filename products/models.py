@@ -1,7 +1,13 @@
 from django.db import models
 from categories.models import Category
 
-# Create your models here.
+class City(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Назва міста")
+    region = models.CharField(max_length=100, verbose_name="Область", blank=True)
+
+    def __str__(self):
+        return self.name
+
 class Product(models.Model):
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE, related_name="products"
@@ -26,9 +32,6 @@ class ProductImage(models.Model):
 
     class Meta:
         ordering = ["priority", "created_at"]
-    
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"Фото [{self.priority}] для {self.product.name}"
