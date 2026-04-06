@@ -8,10 +8,16 @@ class City(models.Model):
     def __str__(self):
         return self.name
 
+class Department(models.Model):
+    city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="departments")
+    address = models.CharField(max_length=255, verbose_name="Адреса відділення")
+    number = models.PositiveIntegerField(verbose_name="Номер відділення")
+
+    def __str__(self):
+        return f"Відділення №{self.number} ({self.city.name})"
+
 class Product(models.Model):
-    category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, related_name="products"
-    )
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, null=True, blank=True, unique=True)
     description = models.TextField(blank=True)
@@ -23,15 +29,10 @@ class Product(models.Model):
         return f"{self.name} ({self.category.name})"
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="images", null=True, blank=True
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images", null=True, blank=True)
     image = models.ImageField(upload_to="images/")
     priority = models.PositiveIntegerField(default=0, help_text="0 = головне фото")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["priority", "created_at"]
-    
-    def __str__(self):
-        return f"Фото [{self.priority}] для {self.product.name}"

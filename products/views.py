@@ -8,19 +8,37 @@ from django.core.files.base import ContentFile
 from PIL import Image
 from io import BytesIO
 
-# Імпорти для API
 from rest_framework import generics
-from .serializers import CitySerializer
-
-from .models import Product, ProductImage, Category, City
+from .serializers import CitySerializer, CategorySerializer, DepartmentSerializer
+from .models import Product, ProductImage, Category, City, Department
 from .forms import ProductForm, CategoryForm
-
-# --- API ДЛЯ МІСТ ---
+class DepartmentListAPI(generics.ListAPIView):
+    serializer_class = DepartmentSerializer
+    def get_queryset(self):
+        queryset = Department.objects.all()
+        city_id = self.request.query_params.get('city_id')
+        if city_id:
+            queryset = queryset.filter(city_id=city_id)
+        return queryset
+# --- API ДЛЯ REACT (RTK QUERY) ---
 class CityListCreateAPI(generics.ListCreateAPIView):
     queryset = City.objects.all()
     serializer_class = CitySerializer
 
-# --- КАТЕГОРІЇ ---
+class CategoryUpdateAPI(generics.RetrieveUpdateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+class DepartmentListAPI(generics.ListAPIView):
+    serializer_class = DepartmentSerializer
+    def get_queryset(self):
+        queryset = Department.objects.all()
+        city_id = self.request.query_params.get('city_id')
+        if city_id:
+            queryset = queryset.filter(city_id=city_id)
+        return queryset
+
+# --- КАТЕГОРІЇ ТА ПРОДУКТИ ---
 def add_category(request):
     if request.method == "POST":
         form = CategoryForm(request.POST, request.FILES)
@@ -31,7 +49,6 @@ def add_category(request):
         form = CategoryForm()
     return render(request, "add_category.html", {"form": form})
 
-# --- ПРОДУКТИ ---
 def show_products(request):
     products = Product.objects.prefetch_related("images").all()
     return render(request, 'products.html', {'products': products})
@@ -52,40 +69,34 @@ def add_product(request):
         form = ProductForm()
     return render(request, "add_product.html", {"form": form})
 
-def edit_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    if request.method == "POST":
-        form = ProductForm(request.POST, instance=product)
-        if form.is_valid():
-            form.save()
-            return redirect("products:show_products")
-    else:
-        form = ProductForm(instance=product)
-    return render(request, "add_product.html", {"form": form, "product": product, "edit_mode": True})
-
-def delete_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    for img in product.images.all():
-        if img.image:
-            img.image.delete(save=False)
-        img.delete()
-    product.delete()
-    return redirect('products:show_products')
-
-# --- ЗАВАНТАЖЕННЯ ЗОБРАЖЕНЬ (FILEPOND) ---
+# --- ЗАВАНТАЖЕННЯ З ОБРІЗКОЮ (CROP) ---
 @csrf_exempt
 def upload_temp_image(request):
     if request.method == "POST":
         file_key = list(request.FILES.keys())[0]
         image_file = request.FILES[file_key]
-        img = ProductImage()
+        
         img_image = Image.open(image_file)
+        
+        # Центрична обрізка до квадрата
+        width, height = img_image.size
+        min_side = min(width, height)
+        left = (width - min_side) / 2
+        top = (height - min_side) / 2
+        right = (width + min_side) / 2
+        bottom = (height + min_side) / 2
+        img_image = img_image.crop((left, top, right, bottom))
+        img_image = img_image.resize((800, 800), Image.LANCZOS)
+
         if img_image.mode in ("RGBA", "P"):
             img_image = img_image.convert("RGB")
+
         filename = f"{uuid.uuid4().hex}.webp"
         buffer = BytesIO()
-        img_image.save(buffer, format="WEBP")
+        img_image.save(buffer, format="WEBP", quality=85)
         buffer.seek(0)
+        
+        img = ProductImage()
         img.image.save(filename, ContentFile(buffer.read()), save=True)
         return JsonResponse({"file_id": img.id})
 
