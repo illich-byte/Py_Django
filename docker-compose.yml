@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: atb_postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=atb_market_db
+      - POSTGRES_USER=atb_admin123
+      - POSTGRES_PASSWORD=illiatop1bs!
+    ports:
+      - "5433:5432"
+
+  web:
+    build: .
+    container_name: atb_django_web
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - USE_DOCKER=yes
+      - POSTGRES_DB=atb_market_db
+      - POSTGRES_USER=atb_admin123
+      - POSTGRES_PASSWORD=illiatop1bs
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
