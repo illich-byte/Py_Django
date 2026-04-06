@@ -1,16 +1,18 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views # Додай цей імпорт
 from . import views
 
-app_name = 'users'
+app_name = 'products'
 
 urlpatterns = [
-    path('register/', views.register, name="register"),
-    path('login/', views.user_login, name="login"),
-    path('logout/', views.user_logout, name="logout"),
+    path('', views.show_products, name='show_products'),
+    path('add/', views.add_product, name='add_product'),
+    path('edit/<int:product_id>/', views.edit_product, name='edit_product'),
+    path('delete/<int:product_id>/', views.delete_product, name='delete_product'),
+    path('category/add/', views.add_category, name='add_category'),
 
-    path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
-    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path("upload_temp_image/", views.upload_temp_image, name="upload_temp_image"),
+    path("delete_temp_image/", views.delete_temp_image, name="delete_temp_image"),
+
+    path('api/cities/', views.CityListCreateAPI.as_view(), name='city_api'),
+    path('api/category/<int:pk>/', views.CategoryUpdateAPI.as_view(), name='category_update_api'),
 ]
